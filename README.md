@@ -1,6 +1,6 @@
 *************************************************************
 # Multi_Higgs_HEFT
- - Version 1.0, July, 2022
+ - Version 1.0, November, 2023
  - Author(s):  Javier Martínez Martín
  - Email:  javmar21@ucm.es
 *************************************************************
