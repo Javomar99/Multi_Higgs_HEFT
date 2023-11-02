@@ -1,0 +1,449 @@
+(**********************************************************)
+(*                                                        *)
+(*         Model for Electroweak Effective Theory         *)
+(*                                                        *)
+(**********************************************************)
+
+M$ModelName = "EWET";
+
+M$Information = {Authors -> {"Javier Martínez","Juan José Sanz Cillero"}, 
+   Date->"24/05/2022",
+   Institutions -> {"Universidad Complutense de Madrid"}, 
+   Emails -> {"javmar21@ucm.es","jusanz02@ucm.es"},
+   Version -> "1"
+};
+
+FeynmanGauge = True;
+
+(* ************************** *)
+(* *****  Gauge groups  ***** *)
+(* ************************** *)
+
+M$GaugeGroups = {
+  U1Y  == { 
+    Abelian          -> True,  
+    CouplingConstant -> g1, 
+    GaugeBoson       -> B, 
+    Charge           -> Y
+  },
+  SU2L == { 
+    Abelian           -> False, 
+    CouplingConstant  -> gw, 
+    GaugeBoson        -> Wi, 
+    StructureConstant -> Eps, 
+    Representations   -> {Ta,SU2D}, 
+    Definitions       -> {Ta[a_,b_,c_]->PauliSigma[a,b,c]/2, FSU2L[i_,j_,k_]:> I Eps[i,j,k]}
+  }
+};
+
+
+(* ************************** *)
+(* *****    Indices     ***** *)
+(* ************************** *)
+
+IndexRange[Index[SU2W      ]] = Unfold[Range[3]]; 
+IndexRange[Index[SU2D      ]] = Unfold[Range[2]];
+
+IndexStyle[SU2W,       j];
+IndexStyle[SU2D,       k];
+
+(* ************************** *)
+(* *** Interaction orders *** *)
+(* ***  (as used by mg5)  *** *)
+(* ************************** *)
+
+M$InteractionOrderHierarchy = {
+  {QED, 2}
+};
+
+
+(* ************************** *)
+(* **** Particle classes **** *)
+(* ************************** *)
+
+M$ClassesDescription = {
+
+(* Gauge bosons: physical vector fields *)
+  V[1] == { 
+    ClassName       -> A, 
+    SelfConjugate   -> True,  
+    Mass            -> 0,  
+    Width           -> 0,  
+    ParticleName    -> "a", 
+    PDG             -> 22, 
+    PropagatorLabel -> "\[Gamma]", 
+    PropagatorType  -> W, 
+    PropagatorArrow -> None,
+    FullName        -> "Photon"
+  },
+  V[2] == { 
+    ClassName       -> Z, 
+    SelfConjugate   -> True,
+    Mass            -> {MZ, 91.1876},
+    Width           -> {WZ, 2.4952},
+    ParticleName    -> "Z", 
+    PDG             -> 23, 
+    PropagatorLabel -> "Z",
+    PropagatorType  -> Sine,
+    PropagatorArrow -> None,
+    FullName        -> "Z"
+  },
+  V[3] == {
+    ClassName        -> W,
+    SelfConjugate    -> False,
+    Mass             -> {MW, Internal},
+    Width            -> {WW, 2.085},
+    ParticleName     -> "W+",
+    AntiParticleName -> "W-",
+    QuantumNumbers   -> {Q -> 1},
+    PDG              -> 24, 
+    PropagatorLabel  -> "W",
+    PropagatorType   -> Sine,
+    PropagatorArrow  -> Forward,
+    FullName         -> "W"
+  },
+
+(* Gauge bosons: unphysical vector fields *)
+  V[11] == { 
+    ClassName     -> B, 
+    Unphysical    -> True, 
+    SelfConjugate -> True, 
+    Definitions   -> { B[mu_] -> -sw Z[mu]+cw A[mu]} 
+  },
+  V[12] == { 
+    ClassName     -> Wi,
+    Unphysical    -> True,
+    SelfConjugate -> True, 
+    Indices       -> {Index[SU2W]},
+    FlavorIndex   -> SU2W,
+    Definitions   -> { Wi[mu_,1] -> (Wbar[mu]+W[mu])/Sqrt[2], Wi[mu_,2] -> (Wbar[mu]-W[mu])/(I*Sqrt[2]), Wi[mu_,3] -> cw Z[mu] + sw A[mu]}
+  },
+
+(* Higgs: physical scalars  *)
+  S[1] == {
+    ClassName       -> H,
+    SelfConjugate   -> True,
+    Mass            -> {MH,125},
+    Width           -> {WH,0.00407},
+    PropagatorLabel -> "H",
+    PropagatorType  -> Straight,
+    PropagatorArrow -> None,
+    PDG             -> 25,
+    ParticleName    -> "H",
+    FullName        -> "H"
+  },
+
+(* Pions: Goldstones  *)
+  S[2] == {
+    ClassName       -> pi0,
+    SelfConjugate   -> True,
+    Mass            -> {MPI0, 0},
+    Width           -> {WPI0, 0},
+    PropagatorLabel -> ComposedChar["\\pi",Null,0],
+    PropagatorType  -> D,
+    PropagatorArrow -> None,
+    ParticleName    -> "Pi0",
+    FullName        -> "Pi0"
+  },
+
+  S[3] == {
+    ClassName        -> piC,
+    SelfConjugate    -> False,
+    Mass             -> {MPIC, 0},
+    QuantumNumbers   -> {Q -> 1},
+    Width            -> {WPIC, 0},
+    PropagatorLabel  -> "\[Pi]",
+    PropagatorType   -> D,
+    PropagatorArrow  -> Forward,
+    ParticleName     -> "Pi+",
+    AntiParticleName -> "Pi-",
+    FullName         -> "Pi"
+  }
+};
+
+
+(* ************************** *)
+(* *****   Parameters   ***** *)
+(* ************************** *)
+M$Parameters = {
+
+  (* External parameters *)
+  aEWM1 == { 
+    ParameterType    -> External, 
+    BlockName        -> SMINPUTS, 
+    OrderBlock       -> 1, 
+    Value            -> 127.9,
+    InteractionOrder -> {QED,-2},
+    Description      -> "Inverse of the EW coupling constant at the Z pole"
+  },
+  Gf == {
+    ParameterType    -> External,
+    BlockName        -> SMINPUTS,
+    OrderBlock       -> 2,
+    Value            -> 1.16637*^-5, 
+    InteractionOrder -> {QED,2},
+    TeX              -> Subscript[G,f],
+    Description      -> "Fermi constant"
+  },
+  a == {ParameterType -> External,
+	Description->"L2 coupling u-H"
+  },
+  b == {ParameterType -> External,
+	Description->"L2 coupling u-H^2"
+  },
+  c3u == {ParameterType -> External,
+	Description->"L2 coupling u-H^3"
+  },
+  c4u == {ParameterType -> External,
+	Description->"L2 coupling u-H^4"
+  },
+  F1n0 == {ParameterType -> External,
+	Description->"L4 coupling O1"
+  },
+  F2n0 == {ParameterType -> External,
+	Description->"L4 coupling O2"
+  },
+  F3n0 == {ParameterType -> External,
+	Description->"L4 coupling O3"
+  },
+  F4n0 == {ParameterType -> External,
+	Description->"L4 coupling O4"
+  },
+  F5n0 == {ParameterType -> External,
+	Description->"L4 coupling O5"
+  },
+  F6n0 == {ParameterType -> External,
+	Description->"L4 coupling O6"
+  },
+  F7n0 == {ParameterType -> External,
+	Description->"L4 coupling O7"
+  },
+  F8n0 == {ParameterType -> External,
+	Description->"L4 coupling O8"
+  },
+  F9n0 == {ParameterType -> External,
+	Description->"L4 coupling O9"
+  },
+  F10n0 == {ParameterType -> External,
+	Description->"L4 coupling O10"
+  },
+  F11n0 == {ParameterType -> External,
+	Description->"L4 coupling O11"
+  },
+  FF1n0 == {ParameterType -> External,
+	Description->"L4 coupling O1-odd"
+  },
+  FF2n0 == {ParameterType -> External,
+	Description->"L4 coupling O2-odd"
+  },
+  FF3n0 == {ParameterType -> External,
+	Description->"L4 coupling O3-odd"
+  },
+  F1n1 == {ParameterType -> External,
+	Description->"L4 coupling O1, 1H"
+  },
+  F2n1 == {ParameterType -> External,
+	Description->"L4 coupling O2, 1H"
+  },
+  F3n1 == {ParameterType -> External,
+	Description->"L4 coupling O3, 1H"
+  },
+  F4n1 == {ParameterType -> External,
+	Description->"L4 coupling O4, 1H"
+  },
+  F5n1 == {ParameterType -> External,
+	Description->"L4 coupling O5, 1H"
+  },
+  F6n1 == {ParameterType -> External,
+	Description->"L4 coupling O6, 1H"
+  },
+  F7n1 == {ParameterType -> External,
+	Description->"L4 coupling O7, 1H"
+  },
+  F8n1 == {ParameterType -> External,
+	Description->"L4 coupling O8, 1H"
+  },
+  F9n1 == {ParameterType -> External,
+	Description->"L4 coupling O9, 1H"
+  },
+  F10n1 == {ParameterType -> External,
+	Description->"L4 coupling O10, 1H"
+  },
+  F11n1 == {ParameterType -> External,
+	Description->"L4 coupling O11, 1H"
+  },
+  FF1n1 == {ParameterType -> External,
+	Description->"L4 coupling O1-odd, 1H"
+  },
+  FF2n1 == {ParameterType -> External,
+	Description->"L4 coupling O2-odd, 1H"
+  },
+  FF3n1 == {ParameterType -> External,
+	Description->"L4 coupling O3-odd, 1H"
+  },
+  F1n2 == {ParameterType -> External,
+	Description->"L4 coupling O1, 2H"
+  },
+  F2n2 == {ParameterType -> External,
+	Description->"L4 coupling O2, 2H"
+  },
+  F3n2 == {ParameterType -> External,
+	Description->"L4 coupling O3, 2H"
+  },
+  F4n2 == {ParameterType -> External,
+	Description->"L4 coupling O4, 2H"
+  },
+  F5n2 == {ParameterType -> External,
+	Description->"L4 coupling O5, 2H"
+  },
+  F6n2 == {ParameterType -> External,
+	Description->"L4 coupling O6, 2H"
+  },
+  F7n2 == {ParameterType -> External,
+	Description->"L4 coupling O7, 2H"
+  },
+  F8n2 == {ParameterType -> External,
+	Description->"L4 coupling O8, 2H"
+  },
+  F9n2 == {ParameterType -> External,
+	Description->"L4 coupling O9, 2H"
+  },
+  F10n2 == {ParameterType -> External,
+	Description->"L4 coupling O10, 2H"
+  },
+  F11n2 == {ParameterType -> External,
+	Description->"L4 coupling O11, 2H"
+  },
+  FF1n2 == {ParameterType -> External,
+	Description->"L4 coupling O1-odd, 2H"
+  },
+  FF2n2 == {ParameterType -> External,
+	Description->"L4 coupling O2-odd, 2H"
+  },
+  FF3n2 == {ParameterType -> External,
+	Description->"L4 coupling O3-odd, 2H"
+  },
+  F1n3 == {ParameterType -> External,
+	Description->"L4 coupling O1, 3H"
+  },
+  F2n3 == {ParameterType -> External,
+	Description->"L4 coupling O2, 3H"
+  },
+  F3n3 == {ParameterType -> External,
+	Description->"L4 coupling O3, 3H"
+  },
+  F9n3 == {ParameterType -> External,
+	Description->"L4 coupling O9, 3H"
+  },
+  F10n3 == {ParameterType -> External,
+	Description->"L4 coupling O10, 3H"
+  },
+  F11n3 == {ParameterType -> External,
+	Description->"L4 coupling O11, 3H"
+  },
+  FF1n3 == {ParameterType -> External,
+	Description->"L4 coupling O1-odd, 3H"
+  },
+  FF2n3 == {ParameterType -> External,
+	Description->"L4 coupling O2-odd, 3H"
+  },
+  FF3n3 == {ParameterType -> External,
+	Description->"L4 coupling O3-odd, 3H"
+  },
+  F1n4 == {ParameterType -> External,
+	Description->"L4 coupling O1, 4H"
+  },
+  F2n4 == {ParameterType -> External,
+	Description->"L4 coupling O2, 4H"
+  },
+  F10n4 == {ParameterType -> External,
+	Description->"L4 coupling O10, 4H"
+  },
+  F11n4 == {ParameterType -> External,
+	Description->"L4 coupling O11, 4H"
+  },
+  FF2n4 == {ParameterType -> External,
+	Description->"L4 coupling O2-odd, 4H"
+  },
+  b3 == {ParameterType -> External,
+	Description->"L2 coupling V(h^3)"
+  },
+  b4 == {ParameterType -> External,
+	Description->"L2 coupling V(h^4)"
+  },
+  b5 == {ParameterType -> External,
+	Description->"L2 coupling V(h^5)"
+  },
+  b6 == {ParameterType -> External,
+	Description->"L2 coupling V(h^6)"
+  },
+  epsf == {ParameterType -> External,
+	Description->"Field count parameter for expansion"
+  },
+
+  (* Internal Parameters *)
+  aEW == {
+    ParameterType    -> Internal,
+    Value            -> 1/aEWM1,
+    InteractionOrder -> {QED,2},
+    TeX              -> Subscript[\[Alpha], EW],
+    Description      -> "Electroweak coupling contant"
+  },
+  MW == { 
+    ParameterType -> Internal, 
+    Value         -> Sqrt[MZ^2/2+Sqrt[MZ^4/4-Pi/Sqrt[2]*aEW/Gf*MZ^2]], 
+    TeX           -> Subscript[M,W], 
+    Description   -> "W mass"
+  },
+  sw2 == { 
+    ParameterType -> Internal, 
+    Value         -> 1-(MW/MZ)^2, 
+    Description   -> "Squared Sin of the Weinberg angle"
+  },
+  ee == { 
+    ParameterType    -> Internal, 
+    Value            -> Sqrt[4 Pi aEW], 
+    InteractionOrder -> {QED,1}, 
+    TeX              -> e,  
+    Description      -> "Electric coupling constant"
+  },
+  cw == { 
+    ParameterType -> Internal, 
+    Value         -> Sqrt[1-sw2], 
+    TeX           -> Subscript[c,w], 
+    Description   -> "Cosine of the Weinberg angle"
+  },
+  sw == { 
+    ParameterType -> Internal, 
+    Value         -> Sqrt[sw2], 
+    TeX           -> Subscript[s,w], 
+    Description   -> "Sine of the Weinberg angle"
+  },
+  gw == { 
+    ParameterType    -> Internal, 
+    Definitions      -> {gw->ee/sw}, 
+    InteractionOrder -> {QED,1},  
+    TeX              -> Subscript[g,w], 
+    Description      -> "Weak coupling constant at the Z pole"
+  },
+  g1 == { 
+    ParameterType    -> Internal, 
+    Definitions      -> {g1->ee/cw}, 
+    InteractionOrder -> {QED,1},  
+    TeX              -> Subscript[g,1], 
+    Description      -> "U(1)Y coupling constant at the Z pole"
+  },
+  vev == {
+    ParameterType    -> Internal,
+    Value            -> 2*MW*sw/ee, 
+    InteractionOrder -> {QED,-1},
+    Description      -> "Higgs vacuum expectation value"
+  }
+};
+
+
+(*ADD PARAMETERS IF NEEDED*)
+
+
+
+
